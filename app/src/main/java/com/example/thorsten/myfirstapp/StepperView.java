@@ -24,7 +24,7 @@ public class StepperView extends View {
 
     private int numberOfSteps = 3;
     private int stepProgress = 1;
-    int circleR = SCALE_FACTOR * 10;
+    int circleR = SCALE_FACTOR * 7;
     int lineVisibility = INVISIBLE;
 
     public StepperView(Context context, AttributeSet attrs) {

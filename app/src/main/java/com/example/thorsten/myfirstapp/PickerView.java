@@ -20,7 +20,7 @@ import java.util.List;
  */
 public class PickerView extends View {
     private int SCALE_FACTOR = (int) this.getResources().getDisplayMetrics().density;
-    private int TEXT_SIZE = SCALE_FACTOR * 30;
+    private int TEXT_SIZE = SCALE_FACTOR * 20;
 
     private Paint drawPaint;
     private final int paintColor = Color.BLACK;

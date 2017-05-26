@@ -57,6 +57,7 @@ public class MyActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my);
 
+
         // setup Tabs
 
         host = (FragmentTabHost)findViewById(R.id.tabHost);

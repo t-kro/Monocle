@@ -46,7 +46,7 @@ public class CroppingRectangleView extends ImageView {
     private final int paintColor = Color.WHITE;
     private Paint drawPaint;
 
-    private Rectangle mRect = new Rectangle(new mPoint(SCALE_FACTOR * 100,SCALE_FACTOR * 100), MINIMUM_RECTANGLE_SIZE, MINIMUM_RECTANGLE_SIZE, SCALE_FACTOR * 15);
+    private Rectangle mRect = new Rectangle(new mPoint(SCALE_FACTOR * 100,SCALE_FACTOR * 100), MINIMUM_RECTANGLE_SIZE, MINIMUM_RECTANGLE_SIZE, SCALE_FACTOR * 10);
 
     private int touchStartPoint_flag = BEFORE_START;
     private mPoint touchStartPoint;

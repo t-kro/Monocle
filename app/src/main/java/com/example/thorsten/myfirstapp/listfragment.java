@@ -1,9 +1,13 @@
 package com.example.thorsten.myfirstapp;
 
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,8 +18,36 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.IOException;
+
 public class listfragment extends Fragment {
 
+    private RecyclerView mRecyclerViewSolved, mRecyclerViewUnsolved, mRecyclerViewOwn;
+    private RecyclerView.Adapter mAdapterUnsolved, mAdapterSolved, mAdapterOwn;
+    private RecyclerView.LayoutManager mLayoutManagerUnsolved, mLayoutManagerSolved, mLayoutManagerOwn;
+
+    public String[] listFiles(String dirName) {
+        AssetManager assetManager = getContext().getAssets();
+        File dir = new File(Environment.getExternalStorageDirectory() + "/" + Environment.DIRECTORY_DCIM + "/");
+        String[] fileList = null;
+
+        if(dir.exists()) {
+            //fileList = dir.list();
+            try  {
+                fileList = assetManager.list(dirName);
+
+                for(int i = 0; i < fileList.length; i++) {
+                    fileList[i] = "file:///android_asset/sample_images/" + fileList[i];
+                }
+
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
+
+        return fileList;
+    }
 
 
     @Override
@@ -25,6 +57,29 @@ public class listfragment extends Fragment {
 
         View V = inflater.inflate(R.layout.listtab, container, false);
         hideExtraMenu(V);
+
+        // prepare Recylcervciew
+
+        mRecyclerViewUnsolved = (RecyclerView) V.findViewById(R.id.recycler_view_unsolved);
+        mRecyclerViewSolved = (RecyclerView) V.findViewById(R.id.recycler_view_solved);
+        mRecyclerViewOwn = (RecyclerView) V.findViewById(R.id.recycler_view_own);
+        //mRecyclerView.setHasFixedSize(true);
+
+        mLayoutManagerUnsolved = new LinearLayoutManager(getContext(),LinearLayoutManager.HORIZONTAL, false);
+        mLayoutManagerSolved = new LinearLayoutManager(getContext(),LinearLayoutManager.HORIZONTAL, false);
+        mLayoutManagerOwn = new LinearLayoutManager(getContext(),LinearLayoutManager.HORIZONTAL, false);
+
+        mRecyclerViewUnsolved.setLayoutManager(mLayoutManagerUnsolved);
+        mRecyclerViewSolved.setLayoutManager(mLayoutManagerSolved);
+        mRecyclerViewOwn.setLayoutManager(mLayoutManagerOwn);
+
+        mAdapterUnsolved = new MyListAdapter( listFiles("sample_images") );
+        mAdapterSolved = new MyListAdapter( listFiles("sample_images") );
+        mAdapterOwn = new MyListAdapter( listFiles("sample_images") );
+
+        mRecyclerViewUnsolved.setAdapter(mAdapterUnsolved);
+        mRecyclerViewSolved.setAdapter(mAdapterSolved);
+        mRecyclerViewOwn.setAdapter(mAdapterOwn);
 
         return V;
     }
@@ -67,3 +122,4 @@ public class listfragment extends Fragment {
         }
     }
 }
+

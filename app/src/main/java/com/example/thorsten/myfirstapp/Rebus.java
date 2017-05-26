@@ -169,7 +169,8 @@ public class Rebus {
         }
 
         private Bitmap getBlurredImage(Bitmap image) {
-            Bitmap inputBitmap = Bitmap.createScaledBitmap(image, rebus.blurSize, rebus.blurSize, false);
+            Bitmap copyBitmap = image.copy(Bitmap.Config.ARGB_8888, true);
+            Bitmap inputBitmap = Bitmap.createScaledBitmap(copyBitmap, rebus.blurSize, rebus.blurSize, false);
             Bitmap outputBitmap = Bitmap.createBitmap(inputBitmap);
 
             android.support.v8.renderscript.ScriptIntrinsicBlur theIntrinsic = android.support.v8.renderscript.ScriptIntrinsicBlur.create(rs, android.support.v8.renderscript.Element.U8_4(rs));

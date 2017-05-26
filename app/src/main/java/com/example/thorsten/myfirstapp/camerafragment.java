@@ -1,8 +1,10 @@
 package com.example.thorsten.myfirstapp;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -13,7 +15,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Surface;
@@ -30,6 +34,7 @@ import android.widget.Toast;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.security.Policy;
 import java.security.Timestamp;
 import java.util.List;
 
@@ -42,6 +47,10 @@ public class camerafragment extends Fragment implements SurfaceHolder.Callback {
 
     ImageView mShutterButton = null;
     ImageView mCheckButton = null;
+
+    private static final int MY_PERMISSIONS_REQUEST_CAMERA = 17;
+
+    boolean CameraThreadRunning = false;
 
     private UiHandler mHandler = new UiHandler();
     String recentPicturePath = null;
@@ -162,6 +171,24 @@ public class camerafragment extends Fragment implements SurfaceHolder.Callback {
             }
         });
 
+        //check if permission for camera is fine
+
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.CAMERA)) {
+
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                requestPermissions(new String[]{Manifest.permission.CAMERA},
+                        MY_PERMISSIONS_REQUEST_CAMERA);
+            }
+        }
+
         return V;
     }
 
@@ -206,33 +233,76 @@ public class camerafragment extends Fragment implements SurfaceHolder.Callback {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if(CameraThreadRunning) {
+            ch.sendStopPreviewAndReleaseCamera();
+            ch.sendShutdown();
 
-        ch.sendStopPreviewAndReleaseCamera();
-        ch.sendShutdown();
+            CameraThreadRunning = false;
+        }
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        // set up CameraThread to touch all camera methods from the background
-        mCameraThread = new CameraThread(mHandler,
-                cSurfaceView.getHolder(),
-                getActivity().getWindowManager().getDefaultDisplay().getRotation());
-        mCameraThread.start();
-        ch = mCameraThread.getHandler();
-        ch.sendOpenCamera();
-        ch.sendStartPreview();
-        cSurfaceView.setWillNotDraw(false);
+        //just start CameraThread if permission to camera is granted, otherwise let permission callback do that job
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            // set up CameraThread to touch all camera methods from the background
+
+            mCameraThread = new CameraThread(mHandler,
+                    cSurfaceView.getHolder(),
+                    getActivity().getWindowManager().getDefaultDisplay().getRotation(),
+                    cSurfaceView.getWidth(),
+                    cSurfaceView.getHeight());
+            mCameraThread.start();
+            ch = mCameraThread.getHandler();
+            ch.sendOpenCamera();
+            ch.sendStartPreview();
+
+            cSurfaceView.setWillNotDraw(false);
+
+            CameraThreadRunning = true;
+        }
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-
-        ch.sendStopPreviewAndReleaseCamera();
+        if(CameraThreadRunning) {
+            ch.sendStopPreviewAndReleaseCamera();
+            CameraThreadRunning = false;
+        }
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
             // some work to be done here for screen rotation etc...
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_CAMERA: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // if camera thread is already running start camera, otherwise wait for onSurfaceCreated()
+
+                    mCameraThread = new CameraThread(mHandler,
+                            cSurfaceView.getHolder(),
+                            getActivity().getWindowManager().getDefaultDisplay().getRotation(),
+                            cSurfaceView.getWidth(),
+                            cSurfaceView.getHeight());
+
+                    cSurfaceView.setWillNotDraw(false);
+
+                    CameraThreadRunning = true;
+
+                } else {
+                    Toast.makeText(getActivity(), "Camera Permission needed to take Photo.", Toast.LENGTH_SHORT).show();
+                    Log.e(getString(R.string.app_name), "Permission for Camera was not granted.");
+                }
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
     }
 
     /*
@@ -245,6 +315,8 @@ public class camerafragment extends Fragment implements SurfaceHolder.Callback {
         private volatile SurfaceHolder mHolder; // might be updated by UI Thread
         private int mPreviewState;
         private int mScreenOrientation;
+        private int mScreenWidth, mScreenHeight;
+        private float mScreenRatio;
         private int mCameraOrientation = 0;
         private volatile UiHandler uiHandler;
 
@@ -291,10 +363,12 @@ public class camerafragment extends Fragment implements SurfaceHolder.Callback {
             }
         };
 
-        public CameraThread (UiHandler handler, SurfaceHolder holder, int screen_orientation) {
+        public CameraThread (UiHandler handler, SurfaceHolder holder, int screen_orientation, int view_width, int view_height) {
             uiHandler = handler;
             mHolder = holder;
             mScreenOrientation = screen_orientation;
+            mScreenWidth = view_width;
+            mScreenHeight = view_height;
         }
 
         public void run() {
@@ -331,6 +405,12 @@ public class camerafragment extends Fragment implements SurfaceHolder.Callback {
                 stop_preview_and_release_camera();
                 mCamera = android.hardware.Camera.open(0);
                 qOpened = (mCamera != null);
+
+                Camera.Parameters params = mCamera.getParameters();
+                if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+                    params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                }
+                mCamera.setParameters(params);
             } catch (Exception e) {
                 Log.e(getString(R.string.app_name), "failed to open Camera");
                 e.printStackTrace();
@@ -344,18 +424,27 @@ public class camerafragment extends Fragment implements SurfaceHolder.Callback {
                 android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
                 android.hardware.Camera.getCameraInfo(0, info);
                 int degrees = 0;
+
                 switch (mScreenOrientation) {
                     case Surface.ROTATION_0:
                         degrees = 0;
+
+                        mScreenRatio = (float) mScreenHeight / mScreenWidth;
                         break;
                     case Surface.ROTATION_90:
                         degrees = 90;
+
+                        mScreenRatio = (float) mScreenWidth / mScreenHeight;
                         break;
                     case Surface.ROTATION_180:
                         degrees = 180;
+
+                        mScreenRatio = (float) mScreenHeight / mScreenWidth;
                         break;
                     case Surface.ROTATION_270:
                         degrees = 270;
+
+                        mScreenRatio = (float) mScreenWidth / mScreenHeight;
                         break;
                 }
 
@@ -384,20 +473,61 @@ public class camerafragment extends Fragment implements SurfaceHolder.Callback {
         }
 
         private void start_preview() {
-            if (mCamera != null) {
-                List<Camera.Size> localSizes = mCamera.getParameters().getSupportedPreviewSizes();
-/*                mSupportedPreviewSizes = localSizes;
+            Camera.Parameters params;
+            List<Camera.Size> previewSizes, imageSizes;
+            Camera.Size optimalPreviewSize, optimalImageSize;
+            float ratio, bestRatio;
 
-                requestLayout();
-*/
+            if (mCamera != null) {
+
                 try {
                     mCamera.setPreviewDisplay(mHolder);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
+                // find out best preview size for view
+
+                params = mCamera.getParameters();
+                previewSizes = params.getSupportedPreviewSizes();
+                optimalPreviewSize = previewSizes.get(0);
+                bestRatio = (float) previewSizes.get(0).width / previewSizes.get(0).height;
+
+                for (Camera.Size size : previewSizes) {
+                    if(size.width < mScreenWidth) {
+                        continue;
+                    }
+
+                    ratio = (float) size.width / size.height;
+                    if (Math.abs(ratio - mScreenRatio) <= Math.abs(bestRatio - mScreenRatio)) {
+                        bestRatio = ratio;
+                        optimalPreviewSize = size;
+                    }
+                }
+
+                params.setPreviewSize(optimalPreviewSize.width, optimalPreviewSize.height);
+
+                // set image size to highest possible
+
+                imageSizes = params.getSupportedPictureSizes();
+
+                optimalImageSize = imageSizes.get(0);
+                for(Camera.Size size : imageSizes) {
+                    if(size.width > optimalImageSize.width && size.height > optimalImageSize.height) {
+                        optimalImageSize = size;
+                    }
+                }
+
+                params.setPictureSize(optimalImageSize.width, optimalImageSize.height);
+
+                // set parameters
+
+                mCamera.setParameters(params);
+
                 // Important: Call startPreview() to start updating the preview
                 // surface. Preview must be started before you can take a picture.
+
+
                 mCamera.startPreview();
                 mPreviewState = K_STATE_PREVIEW;
                 uiHandler.sendCameraReady();

@@ -33,7 +33,7 @@ public class RebusActivity extends AppCompatActivity {
         BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
         final Rebus newRebus = new Rebus(picturePath, RebusImageView.MODE_BLUR);
 
-        // change this from RebusImageView to a normal view, since thats the one we use
+        // change this from RebusImageView to a normal view, since thats the one we want to use
 
         final RebusImageView rebusView = (RebusImageView) findViewById(R.id.rebus_view);
         final ImageView mBackButton = (ImageView) findViewById(R.id.back_button);

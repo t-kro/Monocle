@@ -6,6 +6,7 @@
 
     <android.support.v4.app.FragmentTabHost
         android:id="@+id/tabHost"
+
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -28,7 +29,9 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:baselineAligned="false"
-                android:layout_alignParentTop="true">
+                android:layout_alignParentTop="true"
+                android:outlineProvider="bounds"
+                android:elevation="3dp">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -43,7 +46,9 @@
                         android:background="#ffffff"
                         android:text="Spielername"
                         android:visibility="gone"
-                        android:padding="5dp"/>
+                        android:padding="5dp"
+                        android:outlineProvider="bounds"
+                        android:elevation="3dp"/>
 
                     <ImageView
                         android:id="@+id/avatar_image_view"
@@ -62,13 +67,16 @@
                     <TabWidget
                         android:id="@android:id/tabs"
                         android:layout_width="match_parent"
-                        android:layout_height="60dp" />
+                        android:layout_height="60dp"
+                        android:outlineProvider="bounds"
+                        android:elevation="3dp"/>
 
                     <FrameLayout
                         android:id="@+id/chat_layout"
                         android:layout_width="match_parent"
-                        android:layout_height="60dp"
+                        android:layout_height="70dp"
                         android:visibility="gone"
+                        android:alpha="0.8"
                         android:background="#f8f8f8">
                     </FrameLayout>
 
