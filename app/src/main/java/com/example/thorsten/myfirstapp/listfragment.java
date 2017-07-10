@@ -1,7 +1,9 @@
 package com.example.thorsten.myfirstapp;
 
-import android.content.Intent;
+import android.content.Context;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
@@ -11,8 +13,6 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -20,12 +20,15 @@ import android.widget.TextView;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 public class listfragment extends Fragment {
 
     private RecyclerView mRecyclerViewSolved, mRecyclerViewUnsolved, mRecyclerViewOwn;
     private RecyclerView.Adapter mAdapterUnsolved, mAdapterSolved, mAdapterOwn;
     private RecyclerView.LayoutManager mLayoutManagerUnsolved, mLayoutManagerSolved, mLayoutManagerOwn;
+
+    private MosaicImageView pinchView;
 
     public String[] listFiles(String dirName) {
         AssetManager assetManager = getContext().getAssets();
@@ -59,7 +62,7 @@ public class listfragment extends Fragment {
         hideExtraMenu(V);
 
         // prepare Recylcervciew
-
+/*
         mRecyclerViewUnsolved = (RecyclerView) V.findViewById(R.id.recycler_view_unsolved);
         mRecyclerViewSolved = (RecyclerView) V.findViewById(R.id.recycler_view_solved);
         mRecyclerViewOwn = (RecyclerView) V.findViewById(R.id.recycler_view_own);
@@ -80,8 +83,32 @@ public class listfragment extends Fragment {
         mRecyclerViewUnsolved.setAdapter(mAdapterUnsolved);
         mRecyclerViewSolved.setAdapter(mAdapterSolved);
         mRecyclerViewOwn.setAdapter(mAdapterOwn);
+*/
+        // new stuff
+
+        pinchView = (MosaicImageView) V.findViewById(R.id.pincView);
+
+        Bitmap masterimage = getBitmapFromAsset(getContext(),"mapimage.jpg");
+
+        MosaicImageMap map = new MosaicImageMap(getContext(), listFiles("sample_images"), masterimage, 90, 150);
+        pinchView.setMap(map);
 
         return V;
+    }
+
+    public static Bitmap getBitmapFromAsset(Context context, String filePath) {
+        AssetManager assetManager = context.getAssets();
+
+        InputStream istr;
+        Bitmap bitmap = null;
+        try {
+            istr = assetManager.open(filePath);
+            bitmap = BitmapFactory.decodeStream(istr);
+        } catch (IOException e) {
+            // handle exception
+        }
+
+        return bitmap;
     }
 
     public void hideExtraMenu(View V) {
